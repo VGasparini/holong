@@ -33,7 +33,30 @@ export const loadAppState = (): AppState => {
     const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!storedState) return DEFAULT_APP_STATE;
     
-    return JSON.parse(storedState);
+    const parsedState = JSON.parse(storedState);
+    
+    // Migrate timexes to include noteTopics if they don't have it
+    if (parsedState.timexes) {
+      parsedState.timexes = parsedState.timexes.map((timex: any) => {
+        if (!timex.noteTopics) {
+          return {
+            ...timex,
+            noteTopics: timex.notes ? [
+              {
+                id: generateId(),
+                title: "Legacy Notes",
+                content: timex.notes,
+                createdAt: timex.updatedAt || Date.now(),
+                updatedAt: timex.updatedAt || Date.now(),
+              }
+            ] : []
+          };
+        }
+        return timex;
+      });
+    }
+    
+    return parsedState;
   } catch (error) {
     console.error("Failed to load app state:", error);
     return DEFAULT_APP_STATE;

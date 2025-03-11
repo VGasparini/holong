@@ -147,7 +147,7 @@ export default function TimexCard({ timex }: TimexCardProps) {
               initial={{ opacity: 0.8, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.2 }}
-              className="font-mono text-3xl font-bold text-primary"
+              className={`font-mono text-3xl font-bold ${timex.paused ? 'text-red-500' : 'text-primary'}`}
             >
               {formatDuration(duration)}
             </motion.div>
@@ -164,7 +164,7 @@ export default function TimexCard({ timex }: TimexCardProps) {
                 Active
               </div>
             ) : (
-              <span>Paused</span>
+              <span className="text-red-500">Paused</span>
             )}
           </div>
           <Button 

@@ -1,6 +1,5 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
-import { AppState, Section, Timex, Turn } from "@/types";
+import { AppState, Section, Timex, Turn, NoteTopic } from "@/types";
 import { 
   loadAppState, 
   saveAppState, 
@@ -21,6 +20,9 @@ type AppStateContextType = {
   updateSection: (id: string, updates: Partial<Omit<Section, 'id'>>) => void;
   deleteSection: (id: string) => void;
   updateUserPreferences: (preferences: Partial<AppState['userPreferences']>) => void;
+  addNoteTopic: (timexId: string, title: string, content: string) => void;
+  updateNoteTopic: (timexId: string, topicId: string, updates: Partial<Omit<NoteTopic, 'id'>>) => void;
+  deleteNoteTopic: (timexId: string, topicId: string) => void;
 };
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
@@ -40,6 +42,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
       sectionId: sectionId || appState.sections[0].id,
       startTime: Date.now(),
       turns: [],
+      noteTopics: [],
       archived: false,
       paused: false,
       notes: "",
@@ -265,6 +268,78 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     }));
   };
 
+  const addNoteTopic = (timexId: string, title: string, content: string) => {
+    const newTopic: NoteTopic = {
+      id: generateId(),
+      title,
+      content,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    setAppState(prev => ({
+      ...prev,
+      timexes: prev.timexes.map(timex => 
+        timex.id === timexId 
+          ? { 
+              ...timex, 
+              noteTopics: [...(timex.noteTopics || []), newTopic],
+              updatedAt: Date.now() 
+            } 
+          : timex
+      ),
+    }));
+
+    toast(`Added note topic "${title}"`);
+  };
+
+  const updateNoteTopic = (timexId: string, topicId: string, updates: Partial<Omit<NoteTopic, 'id'>>) => {
+    setAppState(prev => ({
+      ...prev,
+      timexes: prev.timexes.map(timex => 
+        timex.id === timexId 
+          ? { 
+              ...timex, 
+              noteTopics: timex.noteTopics.map(topic => 
+                topic.id === topicId 
+                  ? { 
+                      ...topic, 
+                      ...updates,
+                      updatedAt: Date.now() 
+                    } 
+                  : topic
+              ),
+              updatedAt: Date.now() 
+            } 
+          : timex
+      ),
+    }));
+
+    toast(`Updated note topic`);
+  };
+
+  const deleteNoteTopic = (timexId: string, topicId: string) => {
+    const timex = appState.timexes.find(t => t.id === timexId);
+    const topic = timex?.noteTopics.find(t => t.id === topicId);
+    
+    setAppState(prev => ({
+      ...prev,
+      timexes: prev.timexes.map(timex => 
+        timex.id === timexId 
+          ? { 
+              ...timex, 
+              noteTopics: timex.noteTopics.filter(topic => topic.id !== topicId),
+              updatedAt: Date.now() 
+            } 
+          : timex
+      ),
+    }));
+
+    if (topic) {
+      toast(`Deleted note topic "${topic.title}"`);
+    }
+  };
+
   return (
     <AppStateContext.Provider
       value={{
@@ -280,6 +355,9 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
         updateSection,
         deleteSection,
         updateUserPreferences,
+        addNoteTopic,
+        updateNoteTopic,
+        deleteNoteTopic,
       }}
     >
       {children}

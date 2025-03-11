@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppState } from "@/hooks/useAppState";
 import { formatDuration, formatDate, calculateTotalDuration, hasActiveTurn } from "@/utils/storage";
-import { Edit, Play, Pause, RefreshCw, ArrowLeft, Clock, RotateCcw, Archive, Trash2, MessageSquareText } from "lucide-react";
+import { Edit, Play, Pause, RefreshCw, ArrowLeft, Clock, RotateCcw, Archive, Trash2, MessageSquareText, Plus } from "lucide-react";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, 
          AlertDialogTitle, AlertDialogDescription, AlertDialogFooter,
          AlertDialogAction, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter,
          DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Turn } from "@/types";
+import { Turn, NoteTopic } from "@/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function TimexDetail() {
@@ -30,7 +30,10 @@ export default function TimexDetail() {
     updateTimex, 
     archiveTimex, 
     unarchiveTimex, 
-    deleteTimex 
+    deleteTimex,
+    addNoteTopic,
+    updateNoteTopic,
+    deleteNoteTopic
   } = useAppState();
   
   const [duration, setDuration] = useState(0);
@@ -39,8 +42,11 @@ export default function TimexDetail() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
-  const [notes, setNotes] = useState("");
-  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+  const [currentNoteId, setCurrentNoteId] = useState<string | null>(null);
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteContent, setNoteContent] = useState("");
+  const [isDeleteNoteDialogOpen, setIsDeleteNoteDialogOpen] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Find the timex by id
@@ -57,7 +63,6 @@ export default function TimexDetail() {
       setIsActive(!timex.paused);
       setEditedName(timex.name);
       setEditedDescription(timex.description || "");
-      setNotes(timex.notes || "");
     }
   }, [timex]);
   
@@ -117,12 +122,44 @@ export default function TimexDetail() {
     toast(`Updated "${timex.name}"`);
   };
   
-  const handleSaveNotes = () => {
-    updateTimex(timex.id, {
-      notes: notes,
-    });
-    setIsNotesDialogOpen(false);
-    toast(`Notes updated for "${timex.name}"`);
+  const handleOpenAddNote = () => {
+    setCurrentNoteId(null);
+    setNoteTitle("");
+    setNoteContent("");
+    setIsNoteDialogOpen(true);
+  };
+  
+  const handleOpenEditNote = (noteTopic: NoteTopic) => {
+    setCurrentNoteId(noteTopic.id);
+    setNoteTitle(noteTopic.title);
+    setNoteContent(noteTopic.content);
+    setIsNoteDialogOpen(true);
+  };
+  
+  const handleSaveNote = () => {
+    if (currentNoteId) {
+      // Edit existing note topic
+      updateNoteTopic(timex.id, currentNoteId, {
+        title: noteTitle,
+        content: noteContent,
+      });
+    } else {
+      // Add new note topic
+      addNoteTopic(timex.id, noteTitle, noteContent);
+    }
+    setIsNoteDialogOpen(false);
+  };
+  
+  const handleOpenDeleteNote = (noteId: string) => {
+    setCurrentNoteId(noteId);
+    setIsDeleteNoteDialogOpen(true);
+  };
+  
+  const handleDeleteNote = () => {
+    if (currentNoteId) {
+      deleteNoteTopic(timex.id, currentNoteId);
+      setIsDeleteNoteDialogOpen(false);
+    }
   };
   
   const handleArchiveToggle = () => {
@@ -225,7 +262,7 @@ export default function TimexDetail() {
           <CardContent>
             <div className="flex items-center justify-center py-8">
               <div className="text-center">
-                <div className="font-mono text-5xl font-bold mb-4 tracking-tight text-primary">
+                <div className={`font-mono text-5xl font-bold mb-4 tracking-tight ${timex.paused ? 'text-red-500' : 'text-primary'}`}>
                   {formatDuration(duration)}
                 </div>
                 {timex.description && (
@@ -291,10 +328,10 @@ export default function TimexDetail() {
                 
                 <Button
                   variant="outline"
-                  onClick={() => setIsNotesDialogOpen(true)}
+                  onClick={handleOpenAddNote}
                 >
                   <MessageSquareText className="h-4 w-4 mr-2" />
-                  Notes
+                  Add Note
                 </Button>
               </div>
               
@@ -397,22 +434,38 @@ export default function TimexDetail() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => setIsNotesDialogOpen(true)}
+                onClick={handleOpenAddNote}
               >
-                <Edit className="h-3 w-3 mr-1" />
-                Edit Notes
+                <Plus className="h-3 w-3 mr-1" />
+                Add Note Topic
               </Button>
             </div>
             
-            {timex.notes ? (
-              <div className="prose prose-sm dark:prose-invert max-w-full">
-                <p style={{ whiteSpace: 'pre-wrap' }}>{timex.notes}</p>
-              </div>
-            ) : (
+            {(!timex.noteTopics || timex.noteTopics.length === 0) ? (
               <div className="text-center py-8 text-muted-foreground">
                 <MessageSquareText className="h-10 w-10 mx-auto mb-4 opacity-30" />
                 <p>No notes yet</p>
                 <p className="text-sm mt-2">Add notes to keep track of details</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <AnimatePresence mode="popLayout">
+                  {timex.noteTopics.map((noteTopic) => (
+                    <motion.div
+                      key={noteTopic.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <NoteTopicItem 
+                        noteTopic={noteTopic}
+                        onEdit={() => handleOpenEditNote(noteTopic)}
+                        onDelete={() => handleOpenDeleteNote(noteTopic.id)}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             )}
           </div>
@@ -454,33 +507,68 @@ export default function TimexDetail() {
         </TabsContent>
       </Tabs>
       
-      {/* Notes Dialog */}
-      <Dialog open={isNotesDialogOpen} onOpenChange={setIsNotesDialogOpen}>
+      {/* Note Dialog */}
+      <Dialog open={isNoteDialogOpen} onOpenChange={setIsNoteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Notes</DialogTitle>
+            <DialogTitle>{currentNoteId ? 'Edit Note Topic' : 'Add Note Topic'}</DialogTitle>
             <DialogDescription>
-              Add notes for this timex
+              {currentNoteId ? 'Update your note details' : 'Add a new note topic'}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Enter your notes here..."
-              className="min-h-[200px]"
-            />
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="noteTitle" className="text-sm font-medium">
+                Title
+              </label>
+              <Input
+                id="noteTitle"
+                value={noteTitle}
+                onChange={(e) => setNoteTitle(e.target.value)}
+                placeholder="Note topic title"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="noteContent" className="text-sm font-medium">
+                Content
+              </label>
+              <Textarea
+                id="noteContent"
+                value={noteContent}
+                onChange={(e) => setNoteContent(e.target.value)}
+                placeholder="Enter your notes here..."
+                className="min-h-[200px]"
+              />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsNotesDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsNoteDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveNotes}>
-              Save Notes
+            <Button onClick={handleSaveNote}>
+              {currentNoteId ? 'Update' : 'Add'} Note
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Delete Note Dialog */}
+      <AlertDialog open={isDeleteNoteDialogOpen} onOpenChange={setIsDeleteNoteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Note Topic</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this note topic? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteNote}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
@@ -536,6 +624,63 @@ function TurnItem({ turn, index, onEndTurn }: TurnItemProps) {
             </Button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+interface NoteTopicItemProps {
+  noteTopic: NoteTopic;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function NoteTopicItem({ noteTopic, onEdit, onDelete }: NoteTopicItemProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  return (
+    <div className="border rounded-lg p-4">
+      <div className="flex justify-between items-start">
+        <div>
+          <h4 className="font-medium">{noteTopic.title}</h4>
+          <p className="text-xs text-muted-foreground">
+            Updated: {new Date(noteTopic.updatedAt).toLocaleString()}
+          </p>
+        </div>
+        <div className="flex space-x-2">
+          <Button variant="ghost" size="sm" onClick={onEdit}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-destructive" onClick={onDelete}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Delete this note topic</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+      
+      <div className="mt-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full justify-start p-0 h-auto text-muted-foreground hover:text-foreground"
+        >
+          {isExpanded ? "Hide content" : "Show content"}
+        </Button>
+        
+        {isExpanded && (
+          <div className="mt-4 whitespace-pre-wrap text-sm">
+            {noteTopic.content}
+          </div>
+        )}
       </div>
     </div>
   );

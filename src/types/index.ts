@@ -7,8 +7,17 @@ export interface Timex {
   startTime: number;
   paused: boolean;
   notes?: string;
+  noteTopics: NoteTopic[];
   turns: Turn[];
   archived: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface NoteTopic {
+  id: string;
+  title: string;
+  content: string;
   createdAt: number;
   updatedAt: number;
 }
