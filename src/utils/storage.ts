@@ -21,7 +21,6 @@ const DEFAULT_APP_STATE: AppState = {
   userPreferences: {
     name: "User",
     theme: "system",
-    colorSchema: "default",
   },
 };
 
@@ -55,11 +54,6 @@ export const loadAppState = (): AppState => {
         }
         return timex;
       });
-    }
-
-    // Migrate user preferences to include colorSchema if it doesn't have it
-    if (parsedState.userPreferences && !parsedState.userPreferences.colorSchema) {
-      parsedState.userPreferences.colorSchema = "default";
     }
     
     return parsedState;

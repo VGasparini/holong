@@ -69,7 +69,7 @@ export default function TimexCard({ timex }: TimexCardProps) {
       paused: !timex.paused 
     });
     
-    // Removed toast notification
+    toast(timex.paused ? `Resumed "${timex.name}"` : `Paused "${timex.name}"`);
   };
   
   const handleAddTurn = (e: React.MouseEvent) => {
@@ -77,7 +77,7 @@ export default function TimexCard({ timex }: TimexCardProps) {
     e.stopPropagation();
     
     addTurn(timex.id);
-    // Removed toast notification
+    toast(`Added turn to "${timex.name}"`);
   };
   
   const handleArchive = (e: React.MouseEvent) => {

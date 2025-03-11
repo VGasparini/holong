@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useAppState } from "@/hooks/useAppState";
@@ -8,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Download, Moon, Save, Sun, Trash2, Palette } from "lucide-react";
+import { Download, Moon, Save, Sun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
          AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, 
@@ -16,30 +15,17 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
 import { loadAppState, saveAppState } from "@/utils/storage";
 import { motion } from "framer-motion";
 import { AppState } from "@/types";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
-// Color schemas available
-const COLOR_SCHEMAS = [
-  { id: "default", name: "Default Blue", primary: "hsl(210, 90%, 60%)" },
-  { id: "green", name: "Nature Green", primary: "hsl(142, 76%, 36%)" },
-  { id: "purple", name: "Royal Purple", primary: "hsl(270, 70%, 60%)" },
-  { id: "orange", name: "Vibrant Orange", primary: "hsl(25, 95%, 53%)" },
-  { id: "red", name: "Ruby Red", primary: "hsl(0, 72%, 51%)" },
-  { id: "teal", name: "Ocean Teal", primary: "hsl(174, 86%, 45%)" },
-];
 
 export default function Settings() {
   const { appState, updateUserPreferences } = useAppState();
   const [userName, setUserName] = useState(appState.userPreferences.name);
   const [selectedTheme, setSelectedTheme] = useState<'light' | 'dark' | 'system'>(appState.userPreferences.theme);
-  const [selectedColor, setSelectedColor] = useState(appState.userPreferences.colorSchema || "default");
   const [isReallyEnabled, setIsReallyEnabled] = useState(false);
   
   const handleSavePreferences = () => {
     updateUserPreferences({
       name: userName,
       theme: selectedTheme as 'light' | 'dark' | 'system',
-      colorSchema: selectedColor,
     });
     
     if (selectedTheme === "light") {
@@ -52,12 +38,6 @@ export default function Settings() {
       } else {
         document.documentElement.classList.remove("dark");
       }
-    }
-    
-    // Update CSS variables based on selected color schema
-    const selectedSchema = COLOR_SCHEMAS.find(schema => schema.id === selectedColor);
-    if (selectedSchema) {
-      document.documentElement.style.setProperty('--primary', selectedSchema.primary);
     }
     
     toast("Settings saved");
@@ -120,7 +100,6 @@ export default function Settings() {
       userPreferences: {
         name: userName,
         theme: selectedTheme as 'light' | 'dark' | 'system',
-        colorSchema: selectedColor,
       },
     };
     
@@ -130,12 +109,6 @@ export default function Settings() {
   };
   
   useEffect(() => {
-    // Apply color schema on component mount
-    const selectedSchema = COLOR_SCHEMAS.find(schema => schema.id === selectedColor);
-    if (selectedSchema) {
-      document.documentElement.style.setProperty('--primary', selectedSchema.primary);
-    }
-    
     if (selectedTheme === "light") {
       document.documentElement.classList.remove("dark");
     } else if (selectedTheme === "dark") {
@@ -147,7 +120,7 @@ export default function Settings() {
         document.documentElement.classList.remove("dark");
       }
     }
-  }, [selectedTheme, selectedColor]);
+  }, [selectedTheme]);
   
   return (
     <Layout>
@@ -211,33 +184,6 @@ export default function Settings() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              
-              <div className="space-y-3">
-                <Label className="block mb-2">
-                  <div className="flex items-center">
-                    <Palette className="h-4 w-4 mr-2" />
-                    Color Schema
-                  </div>
-                </Label>
-                <RadioGroup 
-                  value={selectedColor} 
-                  onValueChange={setSelectedColor} 
-                  className="grid grid-cols-2 gap-2"
-                >
-                  {COLOR_SCHEMAS.map(schema => (
-                    <div key={schema.id} className="flex items-center space-x-2">
-                      <RadioGroupItem value={schema.id} id={`color-${schema.id}`} />
-                      <Label htmlFor={`color-${schema.id}`} className="flex items-center cursor-pointer">
-                        <div 
-                          className="w-4 h-4 rounded-full mr-2" 
-                          style={{ backgroundColor: schema.primary }}
-                        />
-                        <span>{schema.name}</span>
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
               </div>
               
               <Button onClick={handleSavePreferences} className="w-full">
