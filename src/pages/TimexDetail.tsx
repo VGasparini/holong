@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -254,9 +253,9 @@ export default function TimexDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Duration</CardTitle>
+            <CardTitle>Total Duration</CardTitle>
             <CardDescription>
-              Total time since creation
+              Total time since creation, regardless of turns
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -580,51 +579,43 @@ interface TurnItemProps {
 }
 
 function TurnItem({ turn, index, onEndTurn }: TurnItemProps) {
-  const startDate = new Date(turn.startTime);
-  const endDate = turn.endTime ? new Date(turn.endTime) : null;
   const duration = turn.endTime 
     ? turn.endTime - turn.startTime 
     : Date.now() - turn.startTime;
   
-  const isActive = !turn.endTime;
-  
   return (
-    <div className={`p-4 rounded-lg border ${isActive ? 'border-primary/50 bg-primary/5' : ''}`}>
-      <div className="flex justify-between items-start">
-        <div>
-          <div className="flex items-center">
-            <span className="font-semibold">
-              {turn.label || `Turn ${index}`}
+    <div className="flex items-center justify-between py-2 border-b last:border-0">
+      <div className="flex-1">
+        <div className="font-medium flex items-center">
+          {turn.label || `Turn ${index + 1}`}
+          {!turn.endTime && (
+            <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-100">
+              Active
             </span>
-            {isActive && (
-              <span className="relative flex h-3 w-3 ml-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-              </span>
-            )}
-          </div>
-          <div className="text-sm text-muted-foreground mt-1">
-            <div>Started: {startDate.toLocaleString()}</div>
-            {endDate && <div>Ended: {endDate.toLocaleString()}</div>}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="font-mono font-medium">
-            {formatDuration(duration)}
-          </div>
-          {isActive && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2" 
-              onClick={() => onEndTurn(turn.id)}
-            >
-              <Pause className="h-3 w-3 mr-1" />
-              End Turn
-            </Button>
+          )}
+          {turn.endTime && (
+            <span className="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-100">
+              Completed
+            </span>
           )}
         </div>
+        <div className="text-sm text-muted-foreground">
+          {new Date(turn.startTime).toLocaleString()} 
+          {turn.endTime ? ` - ${new Date(turn.endTime).toLocaleString()}` : " (Active)"}
+        </div>
+        <div className="text-sm font-medium mt-1">
+          Duration: {formatDuration(duration)}
+        </div>
       </div>
+      {!turn.endTime && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => onEndTurn(turn.id)}
+        >
+          End Turn
+        </Button>
+      )}
     </div>
   );
 }

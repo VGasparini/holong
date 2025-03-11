@@ -1,5 +1,5 @@
-
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { useAppState } from "@/hooks/useAppState";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function Sections() {
   const { appState, addSection, updateSection, deleteSection } = useAppState();
+  const navigate = useNavigate();
   const [newSectionName, setNewSectionName] = useState("");
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [editSectionId, setEditSectionId] = useState<string | null>(null);
@@ -47,19 +48,23 @@ export default function Sections() {
     setEditSectionName(name);
   };
   
+  const navigateToSection = (id: string) => {
+    navigate(`/section/${id}`);
+  };
+  
   // Count timexes per section
   const countTimexesInSection = (sectionId: string) => {
     return timexes.filter(timex => timex.sectionId === sectionId && !timex.archived).length;
   };
   
   // Sort sections to always show default first, archived last, and the rest alphabetically
-  const sortedSections = [...sections].sort((a, b) => {
-    if (a.id === "default") return -1;
-    if (b.id === "default") return 1;
-    if (a.id === "archived") return 1;
-    if (b.id === "archived") return -1;
-    return a.name.localeCompare(b.name);
-  });
+  const sortedSections = [...sections]
+    .filter(section => section.id !== "archived") // Filter out the archived section
+    .sort((a, b) => {
+      if (a.id === "default") return -1;
+      if (b.id === "default") return 1;
+      return a.name.localeCompare(b.name);
+    });
   
   return (
     <Layout>
@@ -136,9 +141,12 @@ export default function Sections() {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <Card>
+              <Card className="h-full flex flex-col">
                 <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center">
+                  <CardTitle 
+                    className="flex items-center cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => navigateToSection(section.id)}
+                  >
                     <Folder className="h-5 w-5 mr-2 text-primary" />
                     {section.name}
                   </CardTitle>
@@ -146,7 +154,10 @@ export default function Sections() {
                     {countTimexesInSection(section.id)} timexes
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent 
+                  className="cursor-pointer flex-grow"
+                  onClick={() => navigateToSection(section.id)}
+                >
                   {timexes
                     .filter(timex => timex.sectionId === section.id && !timex.archived)
                     .slice(0, 3)
@@ -167,13 +178,16 @@ export default function Sections() {
                   )}
                 </CardContent>
                 <CardFooter className="pt-2">
-                  {section.id !== "default" && section.id !== "archived" ? (
+                  {section.id !== "default" ? (
                     <div className="flex space-x-2 w-full">
                       <Button 
                         variant="outline" 
                         size="sm" 
                         className="flex-1"
-                        onClick={() => startEditSection(section.id, section.name)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditSection(section.id, section.name);
+                        }}
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
@@ -198,7 +212,10 @@ export default function Sections() {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteSection(section.id)}>
+                            <AlertDialogAction onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSection(section.id);
+                            }}>
                               Delete
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -207,7 +224,7 @@ export default function Sections() {
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground w-full text-center">
-                      {section.id === "default" ? "Default Section" : "System Section"}
+                      Default Section
                     </p>
                   )}
                 </CardFooter>

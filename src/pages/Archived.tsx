@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Layout from "@/components/Layout";
 import { useAppState } from "@/hooks/useAppState";
@@ -12,13 +11,15 @@ export default function Archived() {
   const { appState, unarchiveTimex } = useAppState();
   const [searchTerm, setSearchTerm] = useState("");
   
-  const archivedTimexes = appState.timexes.filter(timex => timex.archived);
+  const archivedTimexes = appState.timexes.filter(timex => timex.archived === true);
   
   const filteredTimexes = archivedTimexes.filter(timex => 
     timex.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   const sortedTimexes = [...filteredTimexes].sort((a, b) => b.updatedAt - a.updatedAt);
+  
+  console.log("Archived timexes:", archivedTimexes.length);
   
   return (
     <Layout>

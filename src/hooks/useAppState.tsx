@@ -96,6 +96,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
           ? { 
               ...timex, 
               archived: true,
+              paused: true,
               sectionId: "archived",
               updatedAt: Date.now() 
             } 

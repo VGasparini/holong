@@ -1,4 +1,3 @@
-
 import { AppState, Section, Timex, Turn } from "@/types";
 
 // Default app state
@@ -33,11 +32,11 @@ export const loadAppState = (): AppState => {
     const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!storedState) return DEFAULT_APP_STATE;
     
-    const parsedState = JSON.parse(storedState);
+    const parsedState = JSON.parse(storedState) as AppState;
     
     // Migrate timexes to include noteTopics if they don't have it
     if (parsedState.timexes) {
-      parsedState.timexes = parsedState.timexes.map((timex: any) => {
+      parsedState.timexes = parsedState.timexes.map((timex) => {
         if (!timex.noteTopics) {
           return {
             ...timex,
@@ -109,18 +108,12 @@ export const formatDate = (timestamp: number): string => {
 
 // Calculate total duration of a timex
 export const calculateTotalDuration = (timex: Timex): number => {
-  let total = 0;
+  // Calculate the total time since the Timex was created
+  const totalTimeSinceCreation = timex.paused ? 
+    (timex.updatedAt - timex.startTime) : 
+    (Date.now() - timex.startTime);
   
-  timex.turns.forEach(turn => {
-    const end = turn.endTime || Date.now();
-    total += end - turn.startTime;
-  });
-  
-  if (timex.turns.length === 0) {
-    total = Date.now() - timex.startTime;
-  }
-  
-  return total;
+  return totalTimeSinceCreation;
 };
 
 // Calculate current duration from start time

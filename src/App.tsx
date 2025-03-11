@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -13,6 +12,7 @@ import Index from "./pages/Index";
 import NewTimex from "./pages/NewTimex";
 import TimexDetail from "./pages/TimexDetail";
 import Sections from "./pages/Sections";
+import SectionDetail from "./pages/SectionDetail";
 import Archived from "./pages/Archived";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -65,6 +65,7 @@ const App = () => {
                 <Route path="/new" element={<NewTimex />} />
                 <Route path="/timex/:id" element={<TimexDetail />} />
                 <Route path="/sections" element={<Sections />} />
+                <Route path="/section/:id" element={<SectionDetail />} />
                 <Route path="/archived" element={<Archived />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="*" element={<NotFound />} />

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import TimexCard from "@/components/TimexCard";
@@ -73,66 +72,27 @@ export default function Index() {
         </Select>
       </div>
 
-      <Tabs defaultValue="all" className="mb-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="all">All Timexes</TabsTrigger>
-          <TabsTrigger value="active">Active</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="all">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <AnimatePresence>
-              {sortedTimexes.length > 0 ? (
-                sortedTimexes.map(timex => (
-                  <motion.div
-                    key={timex.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    layout
-                  >
-                    <TimexCard timex={timex} />
-                  </motion.div>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-muted-foreground">No timexes found. Create a new one to get started.</p>
-                </div>
-              )}
-            </AnimatePresence>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="active">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <AnimatePresence>
-              {sortedTimexes.filter(timex => 
-                timex.turns.some(turn => turn.endTime === null) || timex.turns.length === 0
-              ).length > 0 ? (
-                sortedTimexes
-                  .filter(timex => 
-                    timex.turns.some(turn => turn.endTime === null) || timex.turns.length === 0
-                  )
-                  .map(timex => (
-                    <motion.div
-                      key={timex.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      layout
-                    >
-                      <TimexCard timex={timex} />
-                    </motion.div>
-                  ))
-              ) : (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-muted-foreground">No active timexes found.</p>
-                </div>
-              )}
-            </AnimatePresence>
-          </div>
-        </TabsContent>
-      </Tabs>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <AnimatePresence>
+          {sortedTimexes.length > 0 ? (
+            sortedTimexes.map(timex => (
+              <motion.div
+                key={timex.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                layout
+              >
+                <TimexCard timex={timex} />
+              </motion.div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <p className="text-muted-foreground">No timexes found. Create a new one to get started.</p>
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
     </Layout>
   );
 }
