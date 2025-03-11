@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { AppState, Section, Timex, Turn } from "@/types";
 import { 
@@ -40,6 +41,8 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
       startTime: Date.now(),
       turns: [],
       archived: false,
+      paused: false,
+      notes: "",
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -291,4 +294,3 @@ export const useAppState = () => {
   }
   return context;
 };
-

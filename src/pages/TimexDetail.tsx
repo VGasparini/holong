@@ -1,14 +1,15 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppState } from "@/hooks/useAppState";
 import { formatDuration, formatDate, calculateTotalDuration, hasActiveTurn } from "@/utils/storage";
-import { Edit, Play, Pause, RefreshCw, ArrowLeft, Clock, RotateCcw, Archive, Trash2 } from "lucide-react";
+import { Edit, Play, Pause, RefreshCw, ArrowLeft, Clock, RotateCcw, Archive, Trash2, MessageSquareText } from "lucide-react";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, 
          AlertDialogTitle, AlertDialogDescription, AlertDialogFooter,
          AlertDialogAction, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -17,6 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter,
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Turn } from "@/types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function TimexDetail() {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +39,9 @@ export default function TimexDetail() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
+  const [notes, setNotes] = useState("");
+  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Find the timex by id
   const timex = appState.timexes.find(t => t.id === id);
@@ -49,23 +54,29 @@ export default function TimexDetail() {
   useEffect(() => {
     if (timex) {
       setDuration(calculateTotalDuration(timex));
-      setIsActive(hasActiveTurn(timex));
+      setIsActive(!timex.paused);
       setEditedName(timex.name);
       setEditedDescription(timex.description || "");
+      setNotes(timex.notes || "");
     }
   }, [timex]);
   
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     
     if (isActive && timex) {
-      interval = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         setDuration(calculateTotalDuration(timex));
       }, 1000);
     }
     
     return () => {
-      if (interval) clearInterval(interval);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
   }, [timex, isActive]);
   
@@ -91,6 +102,12 @@ export default function TimexDetail() {
     toast(`Ended turn for "${timex.name}"`);
   };
   
+  const handlePauseToggle = () => {
+    updateTimex(timex.id, { paused: !timex.paused });
+    setIsActive(timex.paused);
+    toast(timex.paused ? `Resumed "${timex.name}"` : `Paused "${timex.name}"`);
+  };
+  
   const handleSaveEdit = () => {
     updateTimex(timex.id, {
       name: editedName,
@@ -98,6 +115,14 @@ export default function TimexDetail() {
     });
     setIsEditDialogOpen(false);
     toast(`Updated "${timex.name}"`);
+  };
+  
+  const handleSaveNotes = () => {
+    updateTimex(timex.id, {
+      notes: notes,
+    });
+    setIsNotesDialogOpen(false);
+    toast(`Notes updated for "${timex.name}"`);
   };
   
   const handleArchiveToggle = () => {
@@ -184,6 +209,7 @@ export default function TimexDetail() {
             <span>Section: {section?.name || "Unknown"}</span>
             <span>Created: {formatDate(timex.createdAt)}</span>
             {timex.archived && <span className="text-amber-500">Archived</span>}
+            {timex.paused && <span className="text-red-500">Paused</span>}
           </div>
         </div>
       </div>
@@ -207,7 +233,7 @@ export default function TimexDetail() {
                     {timex.description}
                   </p>
                 )}
-                {isActive ? (
+                {!timex.paused ? (
                   <div className="flex items-center justify-center">
                     <span className="relative flex h-3 w-3 mr-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -216,7 +242,7 @@ export default function TimexDetail() {
                     <span className="text-sm text-primary">Currently Active</span>
                   </div>
                 ) : (
-                  <span className="text-sm text-muted-foreground">Inactive</span>
+                  <span className="text-sm text-red-500">Paused</span>
                 )}
               </div>
             </div>
@@ -248,6 +274,33 @@ export default function TimexDetail() {
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="outline"
+                  onClick={handlePauseToggle}
+                >
+                  {timex.paused ? (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      Resume
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="h-4 w-4 mr-2" />
+                      Pause
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => setIsNotesDialogOpen(true)}
+                >
+                  <MessageSquareText className="h-4 w-4 mr-2" />
+                  Notes
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
                   onClick={handleArchiveToggle}
                 >
                   <Archive className="h-4 w-4 mr-2" />
@@ -256,10 +309,19 @@ export default function TimexDetail() {
                 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" className="text-destructive">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Permanently delete this timex</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
@@ -283,8 +345,9 @@ export default function TimexDetail() {
       </div>
       
       <Tabs defaultValue="turns" className="mb-6">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="turns">Turns History</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="details">Timex Details</TabsTrigger>
         </TabsList>
         
@@ -327,6 +390,34 @@ export default function TimexDetail() {
           </div>
         </TabsContent>
         
+        <TabsContent value="notes">
+          <div className="rounded-lg border p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold">Notes</h3>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsNotesDialogOpen(true)}
+              >
+                <Edit className="h-3 w-3 mr-1" />
+                Edit Notes
+              </Button>
+            </div>
+            
+            {timex.notes ? (
+              <div className="prose prose-sm dark:prose-invert max-w-full">
+                <p style={{ whiteSpace: 'pre-wrap' }}>{timex.notes}</p>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <MessageSquareText className="h-10 w-10 mx-auto mb-4 opacity-30" />
+                <p>No notes yet</p>
+                <p className="text-sm mt-2">Add notes to keep track of details</p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+        
         <TabsContent value="details">
           <div className="rounded-lg border p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -341,7 +432,7 @@ export default function TimexDetail() {
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-1">Current Status</h3>
-                  <p>{isActive ? "Active" : "Inactive"}</p>
+                  <p>{timex.paused ? "Paused" : "Active"}</p>
                 </div>
               </div>
               <div className="space-y-4">
@@ -362,6 +453,34 @@ export default function TimexDetail() {
           </div>
         </TabsContent>
       </Tabs>
+      
+      {/* Notes Dialog */}
+      <Dialog open={isNotesDialogOpen} onOpenChange={setIsNotesDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Notes</DialogTitle>
+            <DialogDescription>
+              Add notes for this timex
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Enter your notes here..."
+              className="min-h-[200px]"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNotesDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveNotes}>
+              Save Notes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

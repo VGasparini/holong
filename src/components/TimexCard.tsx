@@ -1,204 +1,192 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Archive, ArrowRight, Play, RefreshCw, Pause, Trash2 } from "lucide-react";
-import { formatDuration, formatDate, calculateTotalDuration, hasActiveTurn } from "@/utils/storage";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { useAppState } from "@/hooks/useAppState";
-import { Timex } from "@/types";
-import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatDuration, calculateTotalDuration } from "@/utils/storage";
+import { Play, Pause, MoreVertical, RefreshCw, Archive, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, 
-         AlertDialogTitle, AlertDialogDescription, AlertDialogFooter,
-         AlertDialogAction, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "sonner";
+import { Timex } from "@/types";
 
 interface TimexCardProps {
   timex: Timex;
 }
 
 export default function TimexCard({ timex }: TimexCardProps) {
-  const { addTurn, archiveTimex, deleteTimex, unarchiveTimex, appState } = useAppState();
-  const [duration, setDuration] = useState(calculateTotalDuration(timex));
-  const [isActive, setIsActive] = useState(hasActiveTurn(timex));
+  const { updateTimex, addTurn, archiveTimex, deleteTimex } = useAppState();
+  const [duration, setDuration] = useState<number>(0);
+  const [isActive, setIsActive] = useState<boolean>(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Find the section for this timex
+  const { appState } = useAppState();
   const section = appState.sections.find(s => s.id === timex.sectionId);
-  const sectionName = section?.name || "Unknown";
-
+  
+  // Calculate and update the duration
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
-    if (isActive) {
-      interval = setInterval(() => {
+    setDuration(calculateTotalDuration(timex));
+    setIsActive(!timex.paused);
+    
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
+    if (!timex.paused) {
+      intervalRef.current = setInterval(() => {
         setDuration(calculateTotalDuration(timex));
       }, 1000);
     }
-
+    
     return () => {
-      if (interval) clearInterval(interval);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
-  }, [timex, isActive]);
-
-  useEffect(() => {
-    setIsActive(hasActiveTurn(timex));
-    setDuration(calculateTotalDuration(timex));
   }, [timex]);
-
-  const handleAddTurn = () => {
+  
+  const handleTogglePause = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    updateTimex(timex.id, { 
+      paused: !timex.paused 
+    });
+    
+    toast(timex.paused ? `Resumed "${timex.name}"` : `Paused "${timex.name}"`);
+  };
+  
+  const handleAddTurn = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     addTurn(timex.id);
+    toast(`Added turn to "${timex.name}"`);
+  };
+  
+  const handleArchive = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    archiveTimex(timex.id);
+  };
+  
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    deleteTimex(timex.id);
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      className="w-full"
-    >
-      <Card className={cn(
-        "overflow-hidden transition-all duration-300 h-full",
-        "hover:shadow-lg border",
-        isActive ? "border-primary/30" : "border-border"
-      )}>
+    <Link to={`/timex/${timex.id}`}>
+      <Card className="h-full transition-all duration-200 hover:shadow-md">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="truncate">{timex.name}</CardTitle>
-            {isActive && (
-              <div className="flex items-center">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                </span>
-                <span className="text-xs text-muted-foreground ml-2">Active</span>
-              </div>
-            )}
-          </div>
-          <div className="text-xs text-muted-foreground flex items-center mt-1">
-            <span>Section: {sectionName}</span>
-            <span className="mx-2">•</span>
-            <span>Created: {formatDate(timex.createdAt)}</span>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="line-clamp-1">{timex.name}</CardTitle>
+              <CardDescription className="line-clamp-1">
+                {section?.name || "Unknown section"}
+              </CardDescription>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleAddTurn}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  New Turn
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleArchive}>
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archive
+                </DropdownMenuItem>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuItem 
+                        className="text-destructive focus:text-destructive" 
+                        onClick={handleDelete}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Permanently delete this timex</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardHeader>
-        
-        <CardContent className="pb-3">
-          <div className="font-mono text-2xl font-semibold my-2 tracking-tight">
-            {formatDuration(duration)}
-          </div>
-          
-          {timex.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
-              {timex.description}
-            </p>
-          )}
-          
-          <div className="mt-3">
-            <div className="text-xs text-muted-foreground mb-1">
-              {timex.turns.length} {timex.turns.length === 1 ? 'turn' : 'turns'}
-            </div>
-            {timex.turns.length > 0 && (
-              <div className="flex space-x-1 overflow-x-auto pb-1 no-scrollbar">
-                {timex.turns.slice(-3).map((turn) => (
-                  <div
-                    key={turn.id}
-                    className="text-xs bg-secondary px-2 py-1 rounded-md whitespace-nowrap"
-                  >
-                    {turn.label || `Turn ${timex.turns.indexOf(turn) + 1}`}
-                  </div>
-                ))}
-                {timex.turns.length > 3 && (
-                  <div className="text-xs bg-secondary px-2 py-1 rounded-md whitespace-nowrap">
-                    +{timex.turns.length - 3} more
-                  </div>
-                )}
-              </div>
-            )}
+        <CardContent>
+          <div className="text-center py-4">
+            <motion.div
+              key={duration.toString()}
+              initial={{ opacity: 0.8, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2 }}
+              className="font-mono text-3xl font-bold text-primary"
+            >
+              {formatDuration(duration)}
+            </motion.div>
           </div>
         </CardContent>
-        
-        <CardFooter className="flex justify-between gap-2 pt-0">
-          <div className="flex items-center space-x-2">
-            <TooltipProvider>
-              {timex.archived ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      onClick={() => unarchiveTimex(timex.id)}
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Unarchive</p>
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      onClick={() => archiveTimex(timex.id)}
-                    >
-                      <Archive className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Archive</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete the timex "{timex.name}". This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteTimex(timex.id)}>
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </TooltipProvider>
+        <CardFooter className="pt-0 justify-between">
+          <div className="flex items-center text-xs text-muted-foreground">
+            {isActive ? (
+              <div className="flex items-center">
+                <span className="relative flex h-2 w-2 mr-1">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                </span>
+                Active
+              </div>
+            ) : (
+              <span>Paused</span>
+            )}
           </div>
-          
-          <div className="flex items-center space-x-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={handleAddTurn}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>New Turn</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <Link to={`/timex/${timex.id}`}>
-              <Button>View Details</Button>
-            </Link>
-          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-8"
+            onClick={handleTogglePause}
+          >
+            {timex.paused ? (
+              <>
+                <Play className="h-3 w-3 mr-1" />
+                Resume
+              </>
+            ) : (
+              <>
+                <Pause className="h-3 w-3 mr-1" />
+                Pause
+              </>
+            )}
+          </Button>
         </CardFooter>
       </Card>
-    </motion.div>
+    </Link>
   );
 }
