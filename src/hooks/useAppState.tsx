@@ -16,7 +16,7 @@ type AppStateContextType = {
   unarchiveTimex: (id: string) => void;
   addTurn: (timexId: string, label?: string) => void;
   endTurn: (timexId: string, turnId: string) => void;
-  addSection: (name: string, color?: string) => void;
+  addSection: (name: string, color?: string) => string;
   updateSection: (id: string, updates: Partial<Omit<Section, 'id'>>) => void;
   deleteSection: (id: string) => void;
   updateUserPreferences: (preferences: Partial<AppState['userPreferences']>) => void;
@@ -187,8 +187,9 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   const addSection = (name: string, color?: string) => {
+    const newSectionId = generateId();
     const newSection: Section = {
-      id: generateId(),
+      id: newSectionId,
       name,
       color,
       createdAt: Date.now(),
@@ -201,6 +202,7 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     }));
 
     toast(`Created "${name}" section`);
+    return newSectionId;
   };
 
   const updateSection = (id: string, updates: Partial<Omit<Section, 'id'>>) => {
@@ -289,3 +291,4 @@ export const useAppState = () => {
   }
   return context;
 };
+

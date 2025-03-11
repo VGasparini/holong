@@ -12,6 +12,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { motion } from "framer-motion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required").max(50, "Name is too long"),
@@ -21,7 +23,9 @@ const formSchema = z.object({
 
 export default function NewTimex() {
   const navigate = useNavigate();
-  const { appState, addTimex } = useAppState();
+  const { appState, addTimex, addSection } = useAppState();
+  const [newSectionDialogOpen, setNewSectionDialogOpen] = useState(false);
+  const [newSectionName, setNewSectionName] = useState("");
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -35,6 +39,15 @@ export default function NewTimex() {
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     addTimex(values.name, values.description, values.sectionId);
     navigate("/");
+  };
+
+  const handleAddNewSection = () => {
+    if (newSectionName.trim()) {
+      const newSectionId = addSection(newSectionName);
+      form.setValue("sectionId", newSectionId);
+      setNewSectionName("");
+      setNewSectionDialogOpen(false);
+    }
   };
 
   return (
@@ -104,7 +117,13 @@ export default function NewTimex() {
                     <FormLabel>Section</FormLabel>
                     <FormControl>
                       <Select
-                        onValueChange={field.onChange}
+                        onValueChange={(value) => {
+                          if (value === "new") {
+                            setNewSectionDialogOpen(true);
+                          } else {
+                            field.onChange(value);
+                          }
+                        }}
                         defaultValue={field.value}
                       >
                         <SelectTrigger>
@@ -118,6 +137,12 @@ export default function NewTimex() {
                                 {section.name}
                               </SelectItem>
                             ))}
+                          <SelectItem value="new" className="text-primary">
+                            <div className="flex items-center gap-2">
+                              <Plus className="h-4 w-4" />
+                              <span>New...</span>
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>
@@ -146,6 +171,38 @@ export default function NewTimex() {
           </Form>
         </div>
       </motion.div>
+
+      {/* Dialog for creating a new section */}
+      <Dialog open={newSectionDialogOpen} onOpenChange={setNewSectionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Section</DialogTitle>
+            <DialogDescription>
+              Enter a name for your new section to organize your timexes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={newSectionName}
+              onChange={(e) => setNewSectionName(e.target.value)}
+              placeholder="Section name"
+              className="w-full"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setNewSectionDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleAddNewSection}>
+              Create Section
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
