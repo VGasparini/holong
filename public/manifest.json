@@ -1,12 +1,11 @@
-
 {
-  "name": "Holong Time Tracking",
-  "short_name": "Holong",
-  "description": "Track how long things last and measure time",
+  "name": "Tick-Tock Logs",
+  "short_name": "TickTock",
+  "description": "A time tracking and logging application",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "/icon-192x192.png",
