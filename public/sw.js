@@ -1,5 +1,5 @@
 // Service Worker for PWA
-const CACHE_NAME = 'tick-tock-logs-v1';
+const CACHE_NAME = 'holong-logs-v1';
 const urlsToCache = [
   '/',
   '/index.html',

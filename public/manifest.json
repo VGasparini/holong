@@ -1,6 +1,6 @@
 {
-  "name": "Tick-Tock Logs",
-  "short_name": "TickTock",
+  "name": "Holong",
+  "short_name": "Holong",
   "description": "A time tracking and logging application",
   "start_url": "/",
   "display": "standalone",
