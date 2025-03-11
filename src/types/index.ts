@@ -40,6 +40,7 @@ export interface Section {
 export interface UserPreferences {
   name: string;
   theme: "light" | "dark" | "system";
+  colorSchema?: string;
 }
 
 export interface AppState {
