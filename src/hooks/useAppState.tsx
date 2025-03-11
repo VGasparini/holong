@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { AppState, Section, Timex, Turn } from "@/types";
 import { 
@@ -6,7 +5,7 @@ import {
   saveAppState, 
   generateId 
 } from "@/utils/storage";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 type AppStateContextType = {
   appState: AppState;
@@ -28,12 +27,10 @@ const AppStateContext = createContext<AppStateContextType | undefined>(undefined
 export const AppStateProvider = ({ children }: { children: React.ReactNode }) => {
   const [appState, setAppState] = useState<AppState>(loadAppState);
 
-  // Save state to local storage whenever it changes
   useEffect(() => {
     saveAppState(appState);
   }, [appState]);
 
-  // Add a new timex
   const addTimex = (name: string, description?: string, sectionId?: string) => {
     const newTimex: Timex = {
       id: generateId(),
@@ -55,7 +52,6 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     toast(`Created "${name}" timex`);
   };
 
-  // Update an existing timex
   const updateTimex = (id: string, updates: Partial<Omit<Timex, 'id'>>) => {
     setAppState(prev => ({
       ...prev,
@@ -71,7 +67,6 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     }));
   };
 
-  // Delete a timex
   const deleteTimex = (id: string) => {
     const timexToDelete = appState.timexes.find(t => t.id === id);
     
@@ -85,7 +80,6 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
-  // Archive a timex
   const archiveTimex = (id: string) => {
     const timexToArchive = appState.timexes.find(t => t.id === id);
     
@@ -108,7 +102,6 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
-  // Unarchive a timex
   const unarchiveTimex = (id: string) => {
     const timexToUnarchive = appState.timexes.find(t => t.id === id);
     
@@ -131,7 +124,6 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
-  // Add a new turn to a timex
   const addTurn = (timexId: string, label?: string) => {
     const newTurn: Turn = {
       id: generateId(),
@@ -143,12 +135,10 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     setAppState(prev => {
       const timexToUpdate = prev.timexes.find(t => t.id === timexId);
       
-      // If the timex has an active turn, end it first
       const updatedTimexes = prev.timexes.map(timex => {
         if (timex.id === timexId) {
           const updatedTurns = [...timex.turns];
           
-          // If there's an active turn, end it
           const activeIndex = updatedTurns.findIndex(turn => turn.endTime === null);
           if (activeIndex !== -1) {
             updatedTurns[activeIndex] = {
@@ -157,7 +147,6 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
             };
           }
           
-          // Add the new turn
           return {
             ...timex,
             turns: [...updatedTurns, newTurn],
@@ -178,7 +167,6 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     });
   };
 
-  // End an active turn
   const endTurn = (timexId: string, turnId: string) => {
     setAppState(prev => ({
       ...prev,
@@ -198,7 +186,6 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     }));
   };
 
-  // Add a new section
   const addSection = (name: string, color?: string) => {
     const newSection: Section = {
       id: generateId(),
@@ -216,7 +203,6 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     toast(`Created "${name}" section`);
   };
 
-  // Update an existing section
   const updateSection = (id: string, updates: Partial<Omit<Section, 'id'>>) => {
     if (id === "default" || id === "archived") {
       toast.error("Cannot modify default sections");
@@ -237,7 +223,6 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     }));
   };
 
-  // Delete a section
   const deleteSection = (id: string) => {
     if (id === "default" || id === "archived") {
       toast.error("Cannot delete default sections");
@@ -247,14 +232,12 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     const sectionToDelete = appState.sections.find(s => s.id === id);
     
     setAppState(prev => {
-      // First, move all timexes from this section to the default section
       const updatedTimexes = prev.timexes.map(timex => 
         timex.sectionId === id 
           ? { ...timex, sectionId: "default" } 
           : timex
       );
       
-      // Then remove the section
       return {
         ...prev,
         sections: prev.sections.filter(section => section.id !== id),
@@ -267,7 +250,6 @@ export const AppStateProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
-  // Update user preferences
   const updateUserPreferences = (preferences: Partial<AppState['userPreferences']>) => {
     setAppState(prev => ({
       ...prev,

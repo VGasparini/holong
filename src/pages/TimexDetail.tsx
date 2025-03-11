@@ -15,7 +15,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader,
 import { Dialog, DialogContent, DialogDescription, DialogFooter, 
          DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { Turn } from "@/types";
 
 export default function TimexDetail() {

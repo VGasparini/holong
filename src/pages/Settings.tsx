@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useAppState } from "@/hooks/useAppState";
@@ -9,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Download, Moon, Save, Sun, Trash2 } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
          AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, 
          AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -20,7 +19,7 @@ import { AppState } from "@/types";
 export default function Settings() {
   const { appState, updateUserPreferences } = useAppState();
   const [userName, setUserName] = useState(appState.userPreferences.name);
-  const [selectedTheme, setSelectedTheme] = useState(appState.userPreferences.theme);
+  const [selectedTheme, setSelectedTheme] = useState<'light' | 'dark' | 'system'>(appState.userPreferences.theme);
   const [isReallyEnabled, setIsReallyEnabled] = useState(false);
   
   const handleSavePreferences = () => {
@@ -29,13 +28,11 @@ export default function Settings() {
       theme: selectedTheme as 'light' | 'dark' | 'system',
     });
     
-    // Apply theme changes
     if (selectedTheme === "light") {
       document.documentElement.classList.remove("dark");
     } else if (selectedTheme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
-      // System theme
       if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
         document.documentElement.classList.add("dark");
       } else {
@@ -111,14 +108,12 @@ export default function Settings() {
     window.location.reload();
   };
   
-  // Apply theme on initial load
   useEffect(() => {
     if (selectedTheme === "light") {
       document.documentElement.classList.remove("dark");
     } else if (selectedTheme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
-      // System theme
       if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
         document.documentElement.classList.add("dark");
       } else {
@@ -164,7 +159,7 @@ export default function Settings() {
                 <Label htmlFor="theme">Theme</Label>
                 <Select
                   value={selectedTheme}
-                  onValueChange={setSelectedTheme}
+                  onValueChange={(value: 'light' | 'dark' | 'system') => setSelectedTheme(value)}
                 >
                   <SelectTrigger id="theme">
                     <SelectValue placeholder="Select theme" />
